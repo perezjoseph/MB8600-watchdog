@@ -1,0 +1,18 @@
+version: '3'
+
+services:
+  internet-monitor:
+    build:
+      context: .
+      dockerfile: Dockerfile.monitor.amd64
+    network_mode: "host"  # Use host networking to access the modem directly
+    restart: always  # Automatically restart container if it crashes
+    environment:
+      - TZ=America/New_York  # Set your timezone
+      - MODEM_HOST=192.168.100.1
+      - MODEM_USERNAME=admin
+      - MODEM_PASSWORD=Halorenacido1
+      - MODEM_NOVERIFY=true
+      - CHECK_INTERVAL=60
+      - FAILURE_THRESHOLD=5
+      - RECOVERY_WAIT=600
