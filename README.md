@@ -84,3 +84,35 @@ To see the monitoring logs:
 ```
 docker logs -f internet-monitor
 ```
+
+## Using the GitHub Container Registry Image
+
+This container is also available on GitHub Container Registry. You can use it directly without building locally:
+
+```
+# Pull the image
+docker pull ghcr.io/perezjoseph/mb8600-watchdog:latest
+
+# Create a docker-compose.yml file with your configuration
+# Then run:
+docker-compose up -d
+```
+
+Alternatively, reference the image directly in your docker-compose.yml:
+
+```yaml
+services:
+  internet-monitor:
+    image: ghcr.io/perezjoseph/mb8600-watchdog:latest
+    network_mode: "host"
+    restart: always
+    environment:
+      - TZ=America/New_York
+      - MODEM_HOST=192.168.100.1
+      - MODEM_USERNAME=admin
+      - MODEM_PASSWORD=motorola
+      - MODEM_NOVERIFY=true
+      - CHECK_INTERVAL=60
+      - FAILURE_THRESHOLD=5
+      - RECOVERY_WAIT=600
+```

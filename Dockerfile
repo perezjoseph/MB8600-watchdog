@@ -1,6 +1,11 @@
 # Build stage
 FROM --platform=linux/amd64 python:3.9-alpine AS builder
 
+# Set labels for GitHub Container Registry
+LABEL org.opencontainers.image.source=https://github.com/perezjoseph/MB8600-watchdog
+LABEL org.opencontainers.image.description="Internet monitor and Motorola modem auto-reboot container"
+LABEL org.opencontainers.image.licenses=MIT
+
 WORKDIR /build
 
 # Install build dependencies
