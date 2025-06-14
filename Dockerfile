@@ -20,7 +20,8 @@ FROM --platform=linux/amd64 python:3.9-alpine
 WORKDIR /app
 
 # Install only the absolutely necessary system packages
-RUN apk --no-cache add iputils-ping ca-certificates zlib && \
+RUN apk --no-cache add iputils-ping ca-certificates zlib zlib-dev && \
+    ln -sf /lib/libz.so.1 /usr/lib/libz.so.1 && \
     rm -rf /var/cache/apk/*
 
 # Copy Python packages from builder
