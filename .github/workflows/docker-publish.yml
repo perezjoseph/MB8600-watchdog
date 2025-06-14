@@ -9,8 +9,8 @@ on:
 
 env:
   REGISTRY: ghcr.io
-  # Convert repository name to lowercase for Docker compatibility
-  IMAGE_NAME: ${{ format('{0}', github.repository) | lower }}
+  # Use the repository name directly - we'll convert to lowercase in the steps
+  IMAGE_NAME: ${{ github.repository }}
 
 jobs:
   build:
@@ -27,6 +27,9 @@ jobs:
       - name: Setup Docker buildx
         uses: docker/setup-buildx-action@v3
 
+      - name: Set lowercase image name
+        run: echo "LOWERCASE_IMAGE_NAME=$(echo ${{ github.repository }} | tr '[:upper:]' '[:lower:]')" >> $GITHUB_ENV
+
       - name: Login to GitHub Container Registry
         if: github.event_name != 'pull_request'
         uses: docker/login-action@v3
@@ -39,7 +42,7 @@ jobs:
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          images: ${{ env.REGISTRY }}/${{ env.LOWERCASE_IMAGE_NAME }}
           tags: |
             type=schedule
             type=ref,event=branch
@@ -70,14 +73,14 @@ jobs:
       - name: Pull the built image
         if: github.event_name != 'pull_request'
         run: |
-          docker pull ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
+          docker pull ${{ env.REGISTRY }}/${{ env.LOWERCASE_IMAGE_NAME }}:latest
           
       - name: Slim the Docker image
         if: github.event_name != 'pull_request'
         run: |
-          slim build --target ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest --tag ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:slim --http-probe=false --include-path /app --include-path /usr/local/lib/python3.9 --include-bin /usr/bin/python3.9 --include-bin /bin/ping
+          slim build --target ${{ env.REGISTRY }}/${{ env.LOWERCASE_IMAGE_NAME }}:latest --tag ${{ env.REGISTRY }}/${{ env.LOWERCASE_IMAGE_NAME }}:slim --http-probe=false --include-path /app --include-path /usr/local/lib/python3.9 --include-bin /usr/bin/python3.9 --include-bin /bin/ping
           
       - name: Push slimmed image
         if: github.event_name != 'pull_request'
         run: |
-          docker push ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:slim
+          docker push ${{ env.REGISTRY }}/${{ env.LOWERCASE_IMAGE_NAME }}:slim
