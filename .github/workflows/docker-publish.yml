@@ -60,3 +60,23 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+          
+      - name: Install DockerSlim
+        if: github.event_name != 'pull_request'
+        run: |
+          curl -sL https://raw.githubusercontent.com/slimtoolkit/slim/master/scripts/install-slim.sh | sudo -E bash -
+          
+      - name: Pull the built image
+        if: github.event_name != 'pull_request'
+        run: |
+          docker pull ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
+          
+      - name: Slim the Docker image
+        if: github.event_name != 'pull_request'
+        run: |
+          slim build --target ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest --tag ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:slim --http-probe=false --include-path /app --include-path /usr/local/lib/python3.9 --include-bin /usr/bin/python3.9 --include-bin /bin/ping
+          
+      - name: Push slimmed image
+        if: github.event_name != 'pull_request'
+        run: |
+          docker push ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:slim
