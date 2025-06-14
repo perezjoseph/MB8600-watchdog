@@ -64,15 +64,7 @@ You can adjust these parameters in docker-compose.yml as environment variables:
 - `RECOVERY_WAIT`: Seconds to wait after reboot before resuming monitoring (default: 600)
 - `MODEM_NOVERIFY`: Disable SSL certificate verification (set to "true" to enable)
 
-Alternatively, you can override these settings using command line arguments when starting the container:
-
-- `--host`: Modem IP address
-- `--username` or `-u`: Admin username
-- `--password`: Admin password
-- `--check-interval`: Seconds between checks
-- `--failure-threshold`: Number of failed checks needed to trigger reboot
-- `--recovery-wait`: Seconds to wait after reboot
-- `--noverify` or `-n`: Disable SSL certificate verification
+These environment variables are set with default values in the Docker image, so you only need to specify the ones you want to override in your docker-compose.yml file.
 
 ## Setting up Auto-start
 

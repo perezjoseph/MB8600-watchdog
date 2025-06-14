@@ -30,12 +30,18 @@ COPY --from=builder /build /usr/local/lib/python3.9/site-packages/
 COPY modem_reboot.py monitor_internet.py ./
 RUN chmod +x modem_reboot.py monitor_internet.py
 
+# Set default environment variables
+ENV MODEM_HOST="192.168.100.1" \
+    MODEM_USERNAME="admin" \
+    MODEM_PASSWORD="motorola" \
+    MODEM_NOVERIFY="true" \
+    CHECK_INTERVAL="60" \
+    FAILURE_THRESHOLD="5" \
+    RECOVERY_WAIT="600"
+
 # Use a non-root user for better security
 RUN adduser -D appuser
 USER appuser
 
-# Default command runs the monitor with 60 second intervals, 5 failures threshold (5 minutes)
+# Use environment variables instead of command line arguments
 ENTRYPOINT ["python", "monitor_internet.py"]
-
-# Default arguments can be overridden at runtime
-CMD ["--check-interval", "60", "--failure-threshold", "5", "--noverify"]
