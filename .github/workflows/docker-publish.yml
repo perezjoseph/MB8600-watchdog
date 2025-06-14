@@ -78,7 +78,7 @@ jobs:
       - name: Slim the Docker image
         if: github.event_name != 'pull_request'
         run: |
-          slim build --target ${{ env.REGISTRY }}/${{ env.LOWERCASE_IMAGE_NAME }}:latest --tag ${{ env.REGISTRY }}/${{ env.LOWERCASE_IMAGE_NAME }}:slim --http-probe=false --include-path /app --include-path /usr/local/lib/python3.9 --include-bin /usr/bin/python3.9 --include-bin /bin/ping --preserve-path /lib*/libz.so.1
+          slim build --target ${{ env.REGISTRY }}/${{ env.LOWERCASE_IMAGE_NAME }}:latest --tag ${{ env.REGISTRY }}/${{ env.LOWERCASE_IMAGE_NAME }}:slim --http-probe=false --include-path /app --include-path /usr/local/lib/python3.9 --include-bin /usr/bin/python3.9 --include-bin /bin/ping --include-shell --include-oslibs-net
           
       - name: Push slimmed image
         if: github.event_name != 'pull_request'
