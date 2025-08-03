@@ -1,0 +1,69 @@
+version: '3.8'
+
+services:
+  mb8600-watchdog:
+    build: .
+    container_name: mb8600-watchdog
+    restart: unless-stopped
+    environment:
+      # Modem connection settings
+      - MODEM_HOST=192.168.100.1
+      - MODEM_USERNAME=admin
+      - MODEM_PASSWORD=motorola
+      - MODEM_NOVERIFY=false
+      
+      # Monitoring settings
+      - CHECK_INTERVAL=60
+      - FAILURE_THRESHOLD=5
+      - RECOVERY_WAIT=600
+      
+      # Enhanced logging settings
+      - LOG_LEVEL=INFO
+      - LOG_FILE=/app/logs/watchdog.log
+      - TZ=America/New_York
+      
+      # TCP/IP Diagnostics settings
+      - ENABLE_DIAGNOSTICS=true
+      - DIAGNOSTICS_TIMEOUT=120
+      
+      # Outage tracking settings
+      - OUTAGE_REPORT_INTERVAL=3600  # Report every hour
+    volumes:
+      # Mount logs directory for persistence
+      - ./logs:/app/logs
+      # Optional: mount config file
+      - ./config:/app/config:ro
+    networks:
+      - monitoring
+    healthcheck:
+      test: ["CMD", "python3", "-c", "import os; exit(0 if os.path.exists('/app/logs/watchdog.log') else 1)"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # Optional: Log aggregation service
+  log-viewer:
+    image: amir20/dozzle:latest
+    container_name: mb8600-log-viewer
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    environment:
+      - DOZZLE_LEVEL=info
+      - DOZZLE_TAILSIZE=300
+    networks:
+      - monitoring
+    profiles:
+      - logs
+
+networks:
+  monitoring:
+    driver: bridge

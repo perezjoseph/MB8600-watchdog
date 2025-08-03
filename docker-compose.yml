@@ -1,12 +1,14 @@
-version: '3'
+version: '3.8'
 
 services:
+  # Standard MB8600-watchdog (original version)
   internet-monitor:
     build:
       context: .
       dockerfile: Dockerfile
+    container_name: mb8600-watchdog-standard
     network_mode: "host"  # Use host networking to access the modem directly
-    restart: always  # Automatically restart container if it crashes
+    restart: unless-stopped  # Automatically restart container if it crashes
     environment:
       - TZ=America/New_York  # Set your timezone
       - MODEM_HOST=192.168.100.1
@@ -16,3 +18,82 @@ services:
       - CHECK_INTERVAL=60
       - FAILURE_THRESHOLD=5
       - RECOVERY_WAIT=600
+    profiles:
+      - standard
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # Enhanced MB8600-watchdog (improved version with all features)
+  internet-monitor-enhanced:
+    build:
+      context: .
+      dockerfile: Dockerfile-improved
+    container_name: mb8600-watchdog-enhanced
+    network_mode: "host"  # Use host networking to access the modem directly
+    restart: unless-stopped  # Automatically restart container if it crashes
+    environment:
+      # Modem connection settings
+      - TZ=America/New_York  # Set your timezone
+      - MODEM_HOST=192.168.100.1
+      - MODEM_USERNAME=admin
+      - MODEM_PASSWORD=motorola  # Change this to your modem's password
+      - MODEM_NOVERIFY=true
+      
+      # Monitoring settings
+      - CHECK_INTERVAL=60
+      - FAILURE_THRESHOLD=5
+      - RECOVERY_WAIT=600
+      
+      # Enhanced logging settings
+      - LOG_LEVEL=INFO
+      - LOG_FILE=/app/logs/watchdog.log
+      
+      # TCP/IP Diagnostics settings
+      - ENABLE_DIAGNOSTICS=true
+      - DIAGNOSTICS_TIMEOUT=120
+      
+      # Outage tracking settings
+      - OUTAGE_REPORT_INTERVAL=3600  # Report every hour
+    volumes:
+      # Mount logs directory for persistence
+      - ./logs:/app/logs
+      # Optional: mount config file
+      - ./config:/app/config:ro
+    profiles:
+      - enhanced
+      - default  # Make enhanced the default
+    healthcheck:
+      test: ["CMD", "python3", "-c", "import os; exit(0 if os.path.exists('/app/logs/watchdog.log') else 1)"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # Optional: Log aggregation service (only with enhanced version)
+  log-viewer:
+    image: amir20/dozzle:latest
+    container_name: mb8600-log-viewer
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    environment:
+      - DOZZLE_LEVEL=info
+      - DOZZLE_TAILSIZE=300
+      - DOZZLE_FILTER=name=mb8600-watchdog-enhanced
+    profiles:
+      - enhanced
+      - logs
+
+networks:
+  default:
+    name: mb8600-network
