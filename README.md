@@ -11,19 +11,20 @@ cd MB8600-watchdog
 ./deploy.sh
 ```
 
-### Option 2: Enhanced Version (Default)
+### Option 2: Enhanced Version (Default) - Remote Image
 ```bash
 git clone https://github.com/perezjoseph/MB8600-watchdog.git
 cd MB8600-watchdog
-docker-compose up -d
+docker compose up -d
 ```
 
-### Option 3: Using Pre-built Images
+### Option 3: Using Pre-built Images Directly
 ```bash
-# Enhanced version
+# Enhanced version (recommended)
 docker run -d --name mb8600-watchdog --network host \
   -e MODEM_HOST=192.168.100.1 \
   -e MODEM_PASSWORD=your_password \
+  -v ./logs:/app/logs \
   ghcr.io/perezjoseph/mb8600-watchdog:latest-enhanced
 
 # Standard version  
@@ -33,7 +34,7 @@ docker run -d --name mb8600-watchdog --network host \
   ghcr.io/perezjoseph/mb8600-watchdog:latest
 ```
 
-## 📋 Available Versions
+## 📦 Available Images
 
 ### 🔧 Standard Version
 - **Image**: `ghcr.io/perezjoseph/mb8600-watchdog:latest`
@@ -197,11 +198,14 @@ docker exec mb8600-watchdog-enhanced python3 test_tcp_ip_diagnostics.py network
 
 ### Deployment Management
 ```bash
-# Deploy with interactive setup
+# Deploy with interactive setup (uses remote images)
 ./deploy.sh
 
 # Check status
 ./deploy.sh status
+
+# Update to latest images
+./deploy.sh update
 
 # Stop services
 ./deploy.sh stop
@@ -212,20 +216,20 @@ docker exec mb8600-watchdog-enhanced python3 test_tcp_ip_diagnostics.py network
 
 ### Docker Compose Commands
 ```bash
-# Start services
-docker-compose up -d
+# Start services (pulls remote images automatically)
+docker compose up -d
 
 # View logs
-docker-compose logs -f
+docker compose logs -f
 
 # Stop services
-docker-compose down
+docker compose down
 
-# Update images
-docker-compose pull && docker-compose up -d
+# Update images and restart
+docker compose pull && docker compose up -d
 
 # Restart specific service
-docker-compose restart internet-monitor-enhanced
+docker compose restart internet-monitor-enhanced
 ```
 
 ## 🔍 Troubleshooting

@@ -373,16 +373,28 @@ update_images() {
     print_header "Updating MB8600-Watchdog Images"
     
     echo "Pulling latest images..."
-    docker_compose_cmd pull
     
-    echo "Restarting services with new images..."
-    docker_compose_cmd up -d
+    # Check which services are currently running
+    if docker_compose_cmd ps | grep -q "mb8600-watchdog-enhanced"; then
+        echo "Updating enhanced version..."
+        docker_compose_cmd pull internet-monitor-enhanced
+        docker_compose_cmd up -d internet-monitor-enhanced
+    elif docker_compose_cmd ps | grep -q "mb8600-watchdog-standard"; then
+        echo "Updating standard version..."
+        docker_compose_cmd pull internet-monitor
+        docker_compose_cmd up -d internet-monitor
+    else
+        echo "No running services found. Pulling all images..."
+        docker_compose_cmd pull
+        echo "Use './deploy.sh deploy' to start services."
+        return 0
+    fi
     
     if [ $? -eq 0 ]; then
         print_success "Images updated and services restarted successfully"
         echo
-        echo "New image versions:"
-        docker images | grep "ghcr.io/perezjoseph/mb8600-watchdog"
+        echo "Current image versions:"
+        docker images | grep "ghcr.io/perezjoseph/mb8600-watchdog" | head -5
     else
         print_error "Failed to update images"
     fi
