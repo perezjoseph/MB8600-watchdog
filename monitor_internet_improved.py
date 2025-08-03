@@ -177,6 +177,40 @@ def http_check(url):
                     extra={'extra_data': {'url': url, 'error': str(e), 'error_type': type(e).__name__}})
         return False
 
+def check_internet(ping_hosts, http_hosts):
+    """
+    Check internet connectivity by pinging hosts and HTTP requests
+    Returns True if at least one check succeeds, False otherwise
+    """
+    logger.debug("Starting internet connectivity check")
+    check_results = {'ping': {}, 'http': {}}
+    
+    # First try ping checks
+    for host in ping_hosts:
+        logger.info(f"Pinging {host}...")
+        result = ping(host)
+        check_results['ping'][host] = result
+        if result:
+            logger.info(f"Successfully pinged {host}")
+            logger.debug("Internet connectivity confirmed via ping", 
+                        extra={'extra_data': {'method': 'ping', 'host': host, 'all_results': check_results}})
+            return True
+
+    # Then try HTTP checks
+    for url in http_hosts:
+        logger.info(f"HTTP check to {url}...")
+        result = http_check(url)
+        check_results['http'][url] = result
+        if result:
+            logger.info(f"Successfully connected to {url}")
+            logger.debug("Internet connectivity confirmed via HTTP", 
+                        extra={'extra_data': {'method': 'http', 'url': url, 'all_results': check_results}})
+            return True
+    
+    logger.warning("All internet connectivity checks failed", 
+                  extra={'extra_data': {'all_results': check_results}})
+    return False
+
 def run_network_diagnostics(modem_host):
     """
     Run comprehensive TCP/IP model diagnostics before deciding to reboot
@@ -480,6 +514,116 @@ def reboot_modem(host, username, password, noverify):
                         'duration': total_duration
                     }}, exc_info=True)
         return False
+
+def get_arguments():
+    """
+    Parse command line arguments with environment variable fallbacks
+    """
+    # Environment variable defaults
+    env_host = os.environ.get('MODEM_HOST', '192.168.100.1')
+    env_username = os.environ.get('MODEM_USERNAME', 'admin')
+    env_password = os.environ.get('MODEM_PASSWORD', 'motorola')
+    env_noverify = os.environ.get('MODEM_NOVERIFY', '').lower() in ('true', '1', 'yes')
+    env_check_interval = int(os.environ.get('CHECK_INTERVAL', '60'))
+    env_failure_threshold = int(os.environ.get('FAILURE_THRESHOLD', '5'))
+    env_recovery_wait = int(os.environ.get('RECOVERY_WAIT', '600'))
+    env_log_level = os.environ.get('LOG_LEVEL', 'INFO')
+    env_log_file = os.environ.get('LOG_FILE', None)
+    env_enable_diagnostics = os.environ.get('ENABLE_DIAGNOSTICS', 'true').lower() in ('true', '1', 'yes')
+    env_diagnostics_timeout = int(os.environ.get('DIAGNOSTICS_TIMEOUT', '120'))
+    env_outage_report_interval = int(os.environ.get('OUTAGE_REPORT_INTERVAL', '3600'))  # 1 hour default
+    
+    parser = argparse.ArgumentParser(
+        description="Monitor internet connectivity and reboot modem if connection fails"
+    )
+    parser.add_argument(
+        '--host', 
+        default=env_host, 
+        help=f'Hostname or IP of your modem (Default: {env_host})'
+    )
+    parser.add_argument(
+        '--username', 
+        '-u', 
+        default=env_username,
+        help=f'Admin username (Default: {env_username})'
+    )
+    parser.add_argument(
+        '--password', 
+        default=env_password, 
+        help='Admin password (Default from env var or motorola)'
+    )
+    parser.add_argument(
+        '--noverify', 
+        '-n', 
+        action='store_true', 
+        default=env_noverify,
+        help="Disable SSL certificate verification"
+    )
+    parser.add_argument(
+        '--check-interval', 
+        type=int, 
+        default=env_check_interval, 
+        help=f'Seconds between connectivity checks (Default: {env_check_interval})'
+    )
+    parser.add_argument(
+        '--failure-threshold', 
+        type=int, 
+        default=env_failure_threshold, 
+        help=f'Number of consecutive failures before reboot (Default: {env_failure_threshold})'
+    )
+    parser.add_argument(
+        '--recovery-wait', 
+        type=int, 
+        default=env_recovery_wait, 
+        help=f'Seconds to wait after reboot before resuming monitoring (Default: {env_recovery_wait})'
+    )
+    parser.add_argument(
+        '--log-level',
+        default=env_log_level,
+        choices=['DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL'],
+        help=f'Logging level (Default: {env_log_level})'
+    )
+    parser.add_argument(
+        '--log-file',
+        default=env_log_file,
+        help='Path to log file (Default: stdout only)'
+    )
+    parser.add_argument(
+        '--log-max-size',
+        type=int,
+        default=10*1024*1024,
+        help='Maximum log file size in bytes before rotation (Default: 10MB)'
+    )
+    parser.add_argument(
+        '--log-backup-count',
+        type=int,
+        default=5,
+        help='Number of backup log files to keep (Default: 5)'
+    )
+    parser.add_argument(
+        '--enable-diagnostics',
+        action='store_true',
+        default=env_enable_diagnostics,
+        help='Enable TCP/IP model diagnostics before reboot (Default: enabled)'
+    )
+    parser.add_argument(
+        '--disable-diagnostics',
+        action='store_true',
+        help='Disable TCP/IP model diagnostics (revert to simple reboot)'
+    )
+    parser.add_argument(
+        '--diagnostics-timeout',
+        type=int,
+        default=env_diagnostics_timeout,
+        help=f'Timeout for network diagnostics in seconds (Default: {env_diagnostics_timeout})'
+    )
+    parser.add_argument(
+        '--outage-report-interval',
+        type=int,
+        default=env_outage_report_interval,
+        help=f'Interval for periodic outage reports in seconds (Default: {env_outage_report_interval})'
+    )
+    return parser.parse_args()
 
 def log_periodic_outage_report(total_outage_duration, uptime_seconds, outage_start_time=None):
     """
