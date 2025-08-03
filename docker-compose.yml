@@ -3,9 +3,7 @@ version: '3.8'
 services:
   # Standard MB8600-watchdog (original version)
   internet-monitor:
-    build:
-      context: .
-      dockerfile: Dockerfile
+    image: ghcr.io/perezjoseph/mb8600-watchdog:latest
     container_name: mb8600-watchdog-standard
     network_mode: "host"  # Use host networking to access the modem directly
     restart: unless-stopped  # Automatically restart container if it crashes
@@ -28,9 +26,7 @@ services:
 
   # Enhanced MB8600-watchdog (improved version with all features)
   internet-monitor-enhanced:
-    build:
-      context: .
-      dockerfile: Dockerfile-improved
+    image: ghcr.io/perezjoseph/mb8600-watchdog:latest-enhanced
     container_name: mb8600-watchdog-enhanced
     network_mode: "host"  # Use host networking to access the modem directly
     restart: unless-stopped  # Automatically restart container if it crashes

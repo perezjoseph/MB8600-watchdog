@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # MB8600-Watchdog Deployment Script
-# This script helps you deploy the right version of MB8600-watchdog
+# This script helps you deploy the right version of MB8600-watchdog using remote images
 
 set -e
 
@@ -47,11 +47,11 @@ check_dependencies() {
     fi
     print_success "Docker is installed"
     
-    if ! command -v docker-compose &> /dev/null; then
+    if ! command -v docker-compose &> /dev/null && ! docker compose version &> /dev/null; then
         print_error "Docker Compose is not installed. Please install Docker Compose first."
         exit 1
     fi
-    print_success "Docker Compose is installed"
+    print_success "Docker Compose is available"
     
     # Check if Docker daemon is running
     if ! docker info &> /dev/null; then
@@ -89,17 +89,29 @@ validate_ip() {
     fi
 }
 
+# Function to use docker compose (with or without hyphen)
+docker_compose_cmd() {
+    if command -v docker-compose &> /dev/null; then
+        docker-compose "$@"
+    else
+        docker compose "$@"
+    fi
+}
+
 # Main deployment function
 deploy_watchdog() {
-    print_header "MB8600-Watchdog Deployment"
+    print_header "MB8600-Watchdog Deployment (Remote Images)"
     
-    echo "This script will help you deploy MB8600-watchdog with the right configuration."
+    echo "This script will deploy MB8600-watchdog using pre-built images from GitHub Container Registry."
+    echo "No local building required - faster deployment!"
     echo
     
     # Choose version
     echo "Available versions:"
     echo "1) Enhanced (Recommended) - TCP/IP diagnostics, outage tracking, advanced logging"
+    echo "   Image: ghcr.io/perezjoseph/mb8600-watchdog:latest-enhanced"
     echo "2) Standard - Basic internet monitoring and modem rebooting"
+    echo "   Image: ghcr.io/perezjoseph/mb8600-watchdog:latest"
     echo
     
     while true; do
@@ -110,11 +122,13 @@ deploy_watchdog() {
             1)
                 VERSION="enhanced"
                 PROFILE="enhanced"
+                IMAGE="ghcr.io/perezjoseph/mb8600-watchdog:latest-enhanced"
                 break
                 ;;
             2)
                 VERSION="standard"
                 PROFILE="standard"
+                IMAGE="ghcr.io/perezjoseph/mb8600-watchdog:latest"
                 break
                 ;;
             *)
@@ -124,6 +138,7 @@ deploy_watchdog() {
     done
     
     print_success "Selected: $VERSION version"
+    print_success "Using image: $IMAGE"
     
     # Get configuration
     print_header "Configuration"
@@ -199,6 +214,11 @@ deploy_watchdog() {
     if [ "$VERSION" = "enhanced" ]; then
         mkdir -p logs config
         print_success "Created logs and config directories"
+        
+        # Set proper permissions if possible
+        if [ "$(id -u)" = "0" ]; then
+            chown -R 1000:1000 logs config 2>/dev/null || true
+        fi
     fi
     
     # Create or update docker-compose override
@@ -248,15 +268,27 @@ EOF
     
     print_success "Configuration saved to docker-compose.override.yml"
     
+    # Pull images first
+    print_header "Pulling Docker Images"
+    
+    echo "Pulling latest images from GitHub Container Registry..."
+    if [ "$PROFILE" = "enhanced logs" ]; then
+        docker_compose_cmd --profile enhanced --profile logs pull
+    else
+        docker_compose_cmd --profile $PROFILE pull
+    fi
+    
+    print_success "Images pulled successfully"
+    
     # Deploy
     print_header "Deploying MB8600-Watchdog"
     
     echo "Starting deployment with profile: $PROFILE"
     
     if [ "$PROFILE" = "enhanced logs" ]; then
-        docker-compose --profile enhanced --profile logs up -d
+        docker_compose_cmd --profile enhanced --profile logs up -d
     else
-        docker-compose --profile $PROFILE up -d
+        docker_compose_cmd --profile $PROFILE up -d
     fi
     
     if [ $? -eq 0 ]; then
@@ -265,6 +297,7 @@ EOF
         echo
         print_header "Deployment Summary"
         echo "Version: $VERSION"
+        echo "Image: $IMAGE"
         echo "Modem: $MODEM_HOST"
         echo "Check interval: $CHECK_INTERVAL seconds"
         echo "Failure threshold: $FAILURE_THRESHOLD"
@@ -281,22 +314,22 @@ EOF
             
             echo
             print_color $BLUE "Useful commands:"
-            echo "  View logs: docker-compose logs -f internet-monitor-enhanced"
+            echo "  View logs: docker_compose_cmd logs -f internet-monitor-enhanced"
             echo "  View JSON logs: tail -f logs/watchdog.json | jq ."
-            echo "  Test diagnostics: docker exec mb8600-watchdog-enhanced python3 test_tcp_ip_diagnostics.py"
+            echo "  Test diagnostics: docker exec mb8600-watchdog-enhanced python3 -c \"from network_diagnostics import NetworkDiagnostics; d=NetworkDiagnostics(); r=d.run_full_diagnostics('$MODEM_HOST'); print(f'Tests: {len(r)}, Passed: {sum(1 for x in r if x.success)}')\""
             echo "  Check outages: cat logs/watchdog.json | jq 'select(.extra.outage_resolved)'"
         else
             echo
             print_color $BLUE "Useful commands:"
-            echo "  View logs: docker-compose logs -f internet-monitor"
-            echo "  Check status: docker-compose ps"
+            echo "  View logs: docker_compose_cmd logs -f internet-monitor"
+            echo "  Check status: docker_compose_cmd ps"
         fi
         
         echo
         print_color $BLUE "Management commands:"
-        echo "  Stop: docker-compose down"
-        echo "  Restart: docker-compose restart"
-        echo "  Update: docker-compose pull && docker-compose up -d"
+        echo "  Stop: docker_compose_cmd down"
+        echo "  Restart: docker_compose_cmd restart"
+        echo "  Update: docker_compose_cmd pull && docker_compose_cmd up -d"
         
     else
         print_error "Deployment failed. Check the logs above for details."
@@ -309,14 +342,14 @@ show_status() {
     print_header "MB8600-Watchdog Status"
     
     echo "Container Status:"
-    docker-compose ps
+    docker_compose_cmd ps
     
     echo
     echo "Recent Logs:"
-    if docker-compose ps | grep -q "mb8600-watchdog-enhanced"; then
-        docker-compose logs --tail=10 internet-monitor-enhanced
-    elif docker-compose ps | grep -q "mb8600-watchdog-standard"; then
-        docker-compose logs --tail=10 internet-monitor
+    if docker_compose_cmd ps | grep -q "mb8600-watchdog-enhanced"; then
+        docker_compose_cmd logs --tail=10 internet-monitor-enhanced
+    elif docker_compose_cmd ps | grep -q "mb8600-watchdog-standard"; then
+        docker_compose_cmd logs --tail=10 internet-monitor
     else
         print_warning "No MB8600-watchdog containers found"
     fi
@@ -326,7 +359,7 @@ show_status() {
 stop_services() {
     print_header "Stopping MB8600-Watchdog"
     
-    docker-compose down
+    docker_compose_cmd down
     
     if [ $? -eq 0 ]; then
         print_success "Services stopped successfully"
@@ -335,23 +368,49 @@ stop_services() {
     fi
 }
 
+# Function to update images
+update_images() {
+    print_header "Updating MB8600-Watchdog Images"
+    
+    echo "Pulling latest images..."
+    docker_compose_cmd pull
+    
+    echo "Restarting services with new images..."
+    docker_compose_cmd up -d
+    
+    if [ $? -eq 0 ]; then
+        print_success "Images updated and services restarted successfully"
+        echo
+        echo "New image versions:"
+        docker images | grep "ghcr.io/perezjoseph/mb8600-watchdog"
+    else
+        print_error "Failed to update images"
+    fi
+}
+
 # Function to show help
 show_help() {
-    echo "MB8600-Watchdog Deployment Script"
+    echo "MB8600-Watchdog Deployment Script (Remote Images)"
     echo
     echo "Usage: $0 [COMMAND]"
     echo
     echo "Commands:"
-    echo "  deploy    Deploy MB8600-watchdog (default)"
+    echo "  deploy    Deploy MB8600-watchdog using remote images (default)"
     echo "  status    Show current status"
     echo "  stop      Stop all services"
+    echo "  update    Pull latest images and restart services"
     echo "  help      Show this help message"
     echo
     echo "Examples:"
-    echo "  $0                # Interactive deployment"
+    echo "  $0                # Interactive deployment with remote images"
     echo "  $0 deploy         # Interactive deployment"
     echo "  $0 status         # Show status"
+    echo "  $0 update         # Update to latest images"
     echo "  $0 stop           # Stop services"
+    echo
+    echo "Remote Images:"
+    echo "  Enhanced: ghcr.io/perezjoseph/mb8600-watchdog:latest-enhanced"
+    echo "  Standard: ghcr.io/perezjoseph/mb8600-watchdog:latest"
 }
 
 # Main script logic
@@ -366,6 +425,10 @@ main() {
             ;;
         stop)
             stop_services
+            ;;
+        update)
+            check_dependencies
+            update_images
             ;;
         help|--help|-h)
             show_help
