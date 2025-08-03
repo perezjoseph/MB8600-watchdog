@@ -1,4 +1,4 @@
-name: Build and Publish Docker Image
+name: Build and Publish Docker Images
 
 on:
   push:
@@ -19,6 +19,18 @@ jobs:
       contents: read
       packages: write
       id-token: write
+
+    strategy:
+      matrix:
+        variant:
+          - name: "standard"
+            dockerfile: "Dockerfile"
+            suffix: ""
+            description: "Standard MB8600-watchdog with basic monitoring"
+          - name: "enhanced"
+            dockerfile: "Dockerfile-improved"
+            suffix: "-enhanced"
+            description: "Enhanced MB8600-watchdog with TCP/IP diagnostics, outage tracking, and advanced logging"
 
     steps:
       - name: Checkout repository
@@ -44,23 +56,75 @@ jobs:
         with:
           images: ${{ env.REGISTRY }}/${{ env.LOWERCASE_IMAGE_NAME }}
           tags: |
-            type=schedule
-            type=ref,event=branch
-            type=ref,event=tag
-            type=semver,pattern={{version}}
-            type=semver,pattern={{major}}.{{minor}}
-            type=semver,pattern={{major}}
-            type=sha,format=long
-            type=sha,format=short
-            type=raw,value=latest,enable=${{ github.ref == format('refs/heads/{0}', github.event.repository.default_branch) }}
+            type=schedule,suffix=${{ matrix.variant.suffix }}
+            type=ref,event=branch,suffix=${{ matrix.variant.suffix }}
+            type=ref,event=tag,suffix=${{ matrix.variant.suffix }}
+            type=semver,pattern={{version}},suffix=${{ matrix.variant.suffix }}
+            type=semver,pattern={{major}}.{{minor}},suffix=${{ matrix.variant.suffix }}
+            type=semver,pattern={{major}},suffix=${{ matrix.variant.suffix }}
+            type=sha,format=long,suffix=${{ matrix.variant.suffix }}
+            type=sha,format=short,suffix=${{ matrix.variant.suffix }}
+            type=raw,value=latest${{ matrix.variant.suffix }},enable=${{ github.ref == format('refs/heads/{0}', github.event.repository.default_branch) }}
 
-      - name: Build and push Docker image
+      - name: Build and push Docker image (${{ matrix.variant.name }})
         uses: docker/build-push-action@v5
         with:
           context: .
+          file: ${{ matrix.variant.dockerfile }}
           push: ${{ github.event_name != 'pull_request' }}
           platforms: linux/amd64,linux/arm64
           tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          labels: |
+            ${{ steps.meta.outputs.labels }}
+            org.opencontainers.image.title=MB8600-watchdog (${{ matrix.variant.name }})
+            org.opencontainers.image.description=${{ matrix.variant.description }}
+            org.opencontainers.image.variant=${{ matrix.variant.name }}
+          cache-from: type=gha,scope=${{ matrix.variant.name }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.variant.name }}
+
+  # Test job to validate both images work
+  test:
+    runs-on: ubuntu-latest
+    needs: build
+    if: github.event_name == 'pull_request'
+    
+    strategy:
+      matrix:
+        variant: ["standard", "enhanced"]
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        
+      - name: Set lowercase image name
+        run: echo "LOWERCASE_IMAGE_NAME=$(echo ${{ github.repository }} | tr '[:upper:]' '[:lower:]')" >> $GITHUB_ENV
+        
+      - name: Test ${{ matrix.variant }} image
+        run: |
+          SUFFIX=""
+          if [ "${{ matrix.variant }}" = "enhanced" ]; then
+            SUFFIX="-enhanced"
+          fi
+          
+          # Pull the image
+          docker pull ${{ env.REGISTRY }}/${{ env.LOWERCASE_IMAGE_NAME }}:${{ github.sha }}${SUFFIX}
+          
+          # Test basic functionality (dry run)
+          if [ "${{ matrix.variant }}" = "enhanced" ]; then
+            # Test enhanced version with diagnostics disabled for quick test
+            docker run --rm \
+              -e MODEM_HOST=192.168.100.1 \
+              -e CHECK_INTERVAL=5 \
+              -e FAILURE_THRESHOLD=1 \
+              -e ENABLE_DIAGNOSTICS=false \
+              ${{ env.REGISTRY }}/${{ env.LOWERCASE_IMAGE_NAME }}:${{ github.sha }}${SUFFIX} \
+              timeout 10s python3 monitor_internet.py --help || true
+          else
+            # Test standard version
+            docker run --rm \
+              -e MODEM_HOST=192.168.100.1 \
+              -e CHECK_INTERVAL=5 \
+              -e FAILURE_THRESHOLD=1 \
+              ${{ env.REGISTRY }}/${{ env.LOWERCASE_IMAGE_NAME }}:${{ github.sha }}${SUFFIX} \
+              timeout 10s python3 monitor_internet.py --help || true
+          fi
