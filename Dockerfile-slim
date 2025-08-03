@@ -1,0 +1,80 @@
+# Multi-stage build for minimal image size
+FROM --platform=linux/amd64 python:3.11-alpine AS builder
+
+# Set labels for GitHub Container Registry
+LABEL org.opencontainers.image.source=https://github.com/perezjoseph/MB8600-watchdog
+LABEL org.opencontainers.image.description="Slim MB8600-watchdog with TCP/IP diagnostics, outage tracking, and advanced logging"
+LABEL org.opencontainers.image.licenses=MIT
+LABEL org.opencontainers.image.variant=slim
+
+WORKDIR /build
+
+# Install build dependencies (minimal)
+RUN apk add --no-cache --virtual .build-deps \
+    gcc \
+    musl-dev \
+    python3-dev
+
+# Install Python dependencies to a target directory
+COPY requirements.txt .
+RUN pip install --no-cache-dir --target=/build --no-deps \
+    requests urllib3 certifi charset-normalizer idna
+
+# Remove build dependencies to keep builder stage clean
+RUN apk del .build-deps
+
+# Runtime stage - Ultra slim
+FROM --platform=linux/amd64 python:3.11-alpine
+
+WORKDIR /app
+
+# Install only essential runtime dependencies
+RUN apk add --no-cache \
+    iputils \
+    curl \
+    iproute2 \
+    net-tools \
+    ca-certificates \
+    && rm -rf /var/cache/apk/*
+
+# Copy Python packages from builder
+COPY --from=builder /build /usr/local/lib/python3.11/site-packages/
+
+# Create directories with minimal overhead
+RUN mkdir -p /app/logs /app/config
+
+# Copy only essential application files
+COPY monitor_internet_improved.py monitor_internet.py
+COPY modem_reboot_improved.py modem_reboot.py
+COPY network_diagnostics.py ./
+
+# Set minimal permissions
+RUN chmod +x monitor_internet.py modem_reboot.py network_diagnostics.py
+
+# Optimized environment variables (single layer)
+ENV MODEM_HOST="192.168.100.1" \
+    MODEM_USERNAME="admin" \
+    MODEM_PASSWORD="motorola" \
+    MODEM_NOVERIFY="true" \
+    CHECK_INTERVAL="60" \
+    FAILURE_THRESHOLD="5" \
+    RECOVERY_WAIT="600" \
+    LOG_LEVEL="INFO" \
+    LOG_FILE="/app/logs/watchdog.log" \
+    ENABLE_DIAGNOSTICS="true" \
+    DIAGNOSTICS_TIMEOUT="120" \
+    OUTAGE_REPORT_INTERVAL="3600" \
+    PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1
+
+# Create non-root user (Alpine style)
+RUN adduser -D -u 1000 -h /app -s /bin/sh watchdog && \
+    chown -R watchdog:watchdog /app
+USER watchdog
+
+# Minimal health check
+HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=2 \
+    CMD python3 -c "import os; exit(0 if os.path.exists('/app/logs/watchdog.log') else 1)" 2>/dev/null || exit 1
+
+# Default command
+ENTRYPOINT ["python3", "monitor_internet.py"]

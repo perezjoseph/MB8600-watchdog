@@ -1,0 +1,71 @@
+# Ultra-slim multi-stage build
+FROM --platform=linux/amd64 python:3.11-alpine AS builder
+
+WORKDIR /build
+
+# Install minimal build dependencies
+RUN apk add --no-cache gcc musl-dev python3-dev
+
+# Copy and install only required Python packages
+COPY requirements.txt .
+RUN pip wheel --no-cache-dir --no-deps --wheel-dir /build/wheels -r requirements.txt
+
+# Create a minimal Python environment
+RUN pip install --no-cache-dir --target=/build/python \
+    --find-links /build/wheels \
+    requests
+
+# Runtime stage - Distroless-inspired minimal image
+FROM --platform=linux/amd64 python:3.11-alpine
+
+# Set labels
+LABEL org.opencontainers.image.source=https://github.com/perezjoseph/MB8600-watchdog
+LABEL org.opencontainers.image.description="Ultra-slim MB8600-watchdog with essential features only"
+LABEL org.opencontainers.image.licenses=MIT
+LABEL org.opencontainers.image.variant=ultra-slim
+
+WORKDIR /app
+
+# Install only absolutely essential tools
+RUN apk add --no-cache iputils curl && \
+    rm -rf /var/cache/apk/* /tmp/* /var/tmp/*
+
+# Copy Python environment
+COPY --from=builder /build/python /usr/local/lib/python3.11/site-packages/
+
+# Copy only core application files (no tests, no docs)
+COPY monitor_internet_improved.py monitor_internet.py
+COPY modem_reboot_improved.py modem_reboot.py
+COPY network_diagnostics.py ./
+
+# Create minimal directory structure
+RUN mkdir -p logs && \
+    chmod +x *.py
+
+# Optimized environment (single layer)
+ENV MODEM_HOST="192.168.100.1" \
+    MODEM_USERNAME="admin" \
+    MODEM_PASSWORD="motorola" \
+    MODEM_NOVERIFY="true" \
+    CHECK_INTERVAL="60" \
+    FAILURE_THRESHOLD="5" \
+    RECOVERY_WAIT="600" \
+    LOG_LEVEL="INFO" \
+    LOG_FILE="/app/logs/watchdog.log" \
+    ENABLE_DIAGNOSTICS="true" \
+    DIAGNOSTICS_TIMEOUT="120" \
+    OUTAGE_REPORT_INTERVAL="3600" \
+    PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONPATH=/usr/local/lib/python3.11/site-packages
+
+# Minimal user setup
+RUN adduser -D -u 1000 watchdog && \
+    chown -R watchdog:watchdog /app
+USER watchdog
+
+# Lightweight health check
+HEALTHCHECK --interval=60s --timeout=3s --retries=2 \
+    CMD python3 -c "exit(0)" 2>/dev/null || exit 1
+
+ENTRYPOINT ["python3", "monitor_internet.py"]
