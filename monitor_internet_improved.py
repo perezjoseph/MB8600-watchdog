@@ -81,6 +81,38 @@ def setup_logging(log_level='INFO', log_file=None, log_max_size=10*1024*1024, lo
     
     return logger
 
+class CustomJSONEncoder(json.JSONEncoder):
+    """Custom JSON encoder that handles DiagnosticResult and other complex objects"""
+    
+    def default(self, obj):
+        # Handle DiagnosticResult objects
+        if hasattr(obj, '__dict__') and hasattr(obj, 'test_name'):
+            return {
+                'test_name': getattr(obj, 'test_name', 'Unknown'),
+                'success': getattr(obj, 'success', False),
+                'duration': getattr(obj, 'duration', 0.0),
+                'error': getattr(obj, 'error', None),
+                'details': getattr(obj, 'details', None)
+            }
+        
+        # Handle datetime objects
+        if isinstance(obj, datetime):
+            return obj.isoformat()
+        
+        # Handle other objects with __dict__
+        if hasattr(obj, '__dict__'):
+            return {k: v for k, v in obj.__dict__.items() if not k.startswith('_')}
+        
+        # Handle sets, tuples, and other iterables
+        if hasattr(obj, '__iter__') and not isinstance(obj, (str, bytes)):
+            try:
+                return list(obj)
+            except TypeError:
+                pass
+        
+        # Fallback to string representation
+        return str(obj)
+
 class JsonFormatter(logging.Formatter):
     """Custom JSON formatter for structured logging"""
     
@@ -104,7 +136,7 @@ class JsonFormatter(logging.Formatter):
         if hasattr(record, 'extra_data'):
             log_entry['extra'] = record.extra_data
             
-        return json.dumps(log_entry, ensure_ascii=False)
+        return json.dumps(log_entry, ensure_ascii=False, cls=CustomJSONEncoder)
 
 # Initialize logger (will be reconfigured in main())
 logger = logging.getLogger(__name__)
@@ -211,6 +243,73 @@ def check_internet(ping_hosts, http_hosts):
                   extra={'extra_data': {'all_results': check_results}})
     return False
 
+def _serialize_diagnostic_results(results):
+    """
+    Convert DiagnosticResult objects to JSON-serializable dictionaries
+    
+    Args:
+        results: List of DiagnosticResult objects
+        
+    Returns:
+        List of dictionaries with serializable data
+    """
+    if not results:
+        return []
+    
+    serialized = []
+    for result in results:
+        if hasattr(result, '__dict__'):
+            # Convert DiagnosticResult to dict
+            result_dict = {
+                'test_name': getattr(result, 'test_name', 'Unknown'),
+                'success': getattr(result, 'success', False),
+                'duration': getattr(result, 'duration', 0.0),
+                'layer': getattr(result, 'layer', {}).value if hasattr(getattr(result, 'layer', {}), 'value') else str(getattr(result, 'layer', 'Unknown')),
+                'error': getattr(result, 'error', None),
+                'details': getattr(result, 'details', None)
+            }
+            serialized.append(result_dict)
+        else:
+            # Fallback for other types
+            serialized.append(str(result))
+    
+    return serialized
+
+def _serialize_failure_analysis(failure_analysis):
+    """
+    Convert failure analysis data to JSON-serializable format
+    
+    Args:
+        failure_analysis: Dictionary that may contain complex objects
+        
+    Returns:
+        Dictionary with serializable data
+    """
+    if not isinstance(failure_analysis, dict):
+        return {'analysis': str(failure_analysis)}
+    
+    serialized = {}
+    for key, value in failure_analysis.items():
+        if hasattr(value, '__dict__') and hasattr(value, 'test_name'):
+            # DiagnosticResult object
+            serialized[key] = {
+                'test_name': getattr(value, 'test_name', 'Unknown'),
+                'success': getattr(value, 'success', False),
+                'duration': getattr(value, 'duration', 0.0),
+                'error': getattr(value, 'error', None)
+            }
+        elif isinstance(value, list):
+            # List that might contain DiagnosticResult objects
+            serialized[key] = _serialize_diagnostic_results(value)
+        elif isinstance(value, dict):
+            # Nested dictionary
+            serialized[key] = _serialize_failure_analysis(value)
+        else:
+            # Simple value
+            serialized[key] = value
+    
+    return serialized
+
 def run_network_diagnostics(modem_host):
     """
     Run comprehensive TCP/IP model diagnostics before deciding to reboot
@@ -262,7 +361,8 @@ def run_network_diagnostics(modem_host):
                        'total_failed': sum(1 for r in results if not r.success),
                        'layer_stats': layer_stats,
                        'should_reboot': should_reboot,
-                       'failure_analysis': failure_analysis
+                       'failure_analysis': _serialize_failure_analysis(failure_analysis),
+                       'diagnostic_results': _serialize_diagnostic_results(results)
                    }})
         
         return should_reboot, results, failure_analysis
@@ -960,7 +1060,12 @@ def main():
                                           extra={'extra_data': {
                                               'action': 'reboot_recommended',
                                               'diagnostic_results_count': len(diag_results),
-                                              'failure_analysis': failure_analysis
+                                              'failure_analysis': _serialize_failure_analysis(failure_analysis),
+                                              'diagnostic_summary': {
+                                                  'total_tests': len(diag_results),
+                                                  'passed': sum(1 for r in diag_results if r.success),
+                                                  'failed': sum(1 for r in diag_results if not r.success)
+                                              }
                                           }})
                             
                             if reboot_modem(MODEM_HOST, MODEM_USERNAME, MODEM_PASSWORD, NOVERIFY):
