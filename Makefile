@@ -90,7 +90,9 @@ install: build check-root
 	@chown -R $(SERVICE_USER):$(SERVICE_USER) $(INSTALL_DIR) $(LOCALSTATEDIR)/log/mb8600-watchdog
 	@chmod 750 $(INSTALL_DIR)
 	@chmod 755 $(INSTALL_DIR)/bin
-	@chmod 750 $(INSTALL_DIR)/{config,logs,state}
+	@chmod 750 $(INSTALL_DIR)/config
+	@chmod 750 $(INSTALL_DIR)/logs
+	@chmod 750 $(INSTALL_DIR)/state
 	
 	@echo ""
 	@echo "Installation complete!"
