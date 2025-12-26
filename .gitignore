@@ -99,3 +99,4 @@ coverage.html
 vendor/
 # Personal config files
 config/config.json
+config.json

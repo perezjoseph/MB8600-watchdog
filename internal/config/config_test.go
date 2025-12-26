@@ -21,12 +21,12 @@ func TestLoad(t *testing.T) {
 		t.Errorf("Expected default ModemHost to be '%s', got '%s'", DefaultModemHost, cfg.ModemHost)
 	}
 
-	if cfg.CheckInterval != 60*time.Second {
-		t.Errorf("Expected default CheckInterval to be 60s, got %v", cfg.CheckInterval)
+	if cfg.CheckInterval != 15*time.Second {
+		t.Errorf("Expected default CheckInterval to be 15s, got %v", cfg.CheckInterval)
 	}
 
-	if cfg.FailureThreshold != 5 {
-		t.Errorf("Expected default FailureThreshold to be 5, got %d", cfg.FailureThreshold)
+	if cfg.FailureThreshold != 3 {
+		t.Errorf("Expected default FailureThreshold to be 3, got %d", cfg.FailureThreshold)
 	}
 
 	// Verify new default values
