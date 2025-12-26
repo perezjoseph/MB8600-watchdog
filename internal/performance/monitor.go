@@ -125,27 +125,27 @@ func (rld *ResourceLeakDetector) CheckForLeaks() []LeakAlert {
 		if memStats.Alloc > rld.lastMemoryUsage {
 			memoryGrowth := memStats.Alloc - rld.lastMemoryUsage
 			if memoryGrowth > rld.memoryGrowthLimit {
-			alert := LeakAlert{
-				Type:        "memory_leak",
-				Description: "Potential memory leak detected: " + strconv.FormatUint(memoryGrowth, 10) + " bytes growth",
-				Severity:    "high",
-				Timestamp:   time.Now(),
-				Details: map[string]interface{}{
+				alert := LeakAlert{
+					Type:        "memory_leak",
+					Description: "Potential memory leak detected: " + strconv.FormatUint(memoryGrowth, 10) + " bytes growth",
+					Severity:    "high",
+					Timestamp:   time.Now(),
+					Details: map[string]interface{}{
+						"current_memory_mb":  float64(memStats.Alloc) / 1024 / 1024,
+						"previous_memory_mb": float64(rld.lastMemoryUsage) / 1024 / 1024,
+						"growth_mb":          float64(memoryGrowth) / 1024 / 1024,
+						"growth_limit_mb":    float64(rld.memoryGrowthLimit) / 1024 / 1024,
+					},
+				}
+				newAlerts = append(newAlerts, alert)
+				rld.leakAlerts = append(rld.leakAlerts, alert)
+
+				rld.logger.WithFields(logrus.Fields{
 					"current_memory_mb":  float64(memStats.Alloc) / 1024 / 1024,
 					"previous_memory_mb": float64(rld.lastMemoryUsage) / 1024 / 1024,
 					"growth_mb":          float64(memoryGrowth) / 1024 / 1024,
 					"growth_limit_mb":    float64(rld.memoryGrowthLimit) / 1024 / 1024,
-				},
-			}
-			newAlerts = append(newAlerts, alert)
-			rld.leakAlerts = append(rld.leakAlerts, alert)
-
-			rld.logger.WithFields(logrus.Fields{
-				"current_memory_mb":  float64(memStats.Alloc) / 1024 / 1024,
-				"previous_memory_mb": float64(rld.lastMemoryUsage) / 1024 / 1024,
-				"growth_mb":          float64(memoryGrowth) / 1024 / 1024,
-				"growth_limit_mb":    float64(rld.memoryGrowthLimit) / 1024 / 1024,
-			}).Warn("Potential memory leak detected")
+				}).Warn("Potential memory leak detected")
 			}
 		}
 	}

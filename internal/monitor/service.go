@@ -103,7 +103,7 @@ func NewService(cfg *config.Config, logger *logrus.Logger) *Service {
 		logger:         logger,
 		hnapClient:     hnap.NewClient(cfg.ModemHost, cfg.ModemUsername, cfg.ModemPassword, cfg.ModemNoVerify, logger),
 		tester:         tester,
-		analyzer:       diagnostics.NewAnalyzer(logger),
+		analyzer:       diagnostics.NewAnalyzer(logger, cfg.DiagnosticsTimeout),
 		outageTracker:  outageTracker,
 		outageReporter: outageReporter,
 		perfMonitor:    perfMonitor,

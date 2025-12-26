@@ -90,7 +90,7 @@ func TestCircuitBreakerPreventsDiagnosticsCascadingFailures(t *testing.T) {
 	logger := logrus.New()
 	logger.SetLevel(logrus.ErrorLevel) // Reduce noise
 
-	analyzer := diagnostics.NewAnalyzer(logger)
+	analyzer := diagnostics.NewAnalyzer(logger, 5*time.Second)
 	analyzer.SetTimeout(100 * time.Millisecond) // Short timeout to fail quickly
 	analyzer.SetModemIP("192.0.2.1")            // Non-routable address
 

@@ -21,7 +21,7 @@ func TestDiagnosticAnalysisDecisionLogic(t *testing.T) {
 
 	logger := logrus.New()
 	logger.SetLevel(logrus.ErrorLevel) // Reduce noise during property tests
-	analyzer := NewAnalyzer(logger)
+	analyzer := NewAnalyzer(logger, 5*time.Second)
 
 	// Property: For any set of diagnostic results, the analysis should be consistent and logical
 	properties.Property("diagnostic analysis consistency", prop.ForAll(

@@ -106,13 +106,26 @@ func (e *Executor) ExecuteWithContext(ctx context.Context, command string, args 
 
 	if err != nil {
 		result.Error = err.Error()
+
+		// Provide more context for common command failures
+		logLevel := logrus.WarnLevel
+		errorContext := ""
+
+		if command == "ping" && exitCode == 1 {
+			errorContext = " (network unreachable or packet loss - may indicate ISP/internet connectivity issues)"
+			// Reduce log level for expected ping failures during outages
+			if duration > 5*time.Second {
+				logLevel = logrus.InfoLevel
+			}
+		}
+
 		e.logger.WithFields(logrus.Fields{
 			"command":   command,
 			"args":      args,
 			"exit_code": exitCode,
 			"duration":  duration,
-			"error":     err.Error(),
-		}).Warn("System command failed")
+			"error":     err.Error() + errorContext,
+		}).Log(logLevel, "System command failed")
 	} else {
 		e.logger.WithFields(logrus.Fields{
 			"command":  command,

@@ -52,7 +52,7 @@ func TestDiagnosticsReliabilityProperties(t *testing.T) {
 				return true // Skip empty inputs
 			}
 
-			analyzer := NewAnalyzer(logger)
+			analyzer := NewAnalyzer(logger, 5*time.Second)
 
 			// Create various ping output formats
 			outputs := []string{
@@ -81,7 +81,7 @@ func TestDiagnosticsReliabilityProperties(t *testing.T) {
 				return true // Skip invalid timeouts
 			}
 
-			analyzer := NewAnalyzer(logger)
+			analyzer := NewAnalyzer(logger, 5*time.Second)
 			analyzer.SetTimeout(time.Duration(timeoutMs) * time.Millisecond)
 
 			ctx, cancel := context.WithTimeout(context.Background(), time.Duration(timeoutMs)*time.Millisecond)
@@ -112,7 +112,7 @@ func TestDiagnosticsReliabilityProperties(t *testing.T) {
 				return true // Skip invalid concurrency levels
 			}
 
-			analyzer := NewAnalyzer(logger)
+			analyzer := NewAnalyzer(logger, 5*time.Second)
 			results := make(chan error, concurrency)
 
 			// Launch concurrent diagnostic operations
@@ -148,7 +148,7 @@ func TestDiagnosticsReliabilityProperties(t *testing.T) {
 	// Property 5: Network layer analysis should handle edge cases
 	properties.Property("network layer analysis handles edge cases", prop.ForAll(
 		func(layer NetworkLayer) bool {
-			analyzer := NewAnalyzer(logger)
+			analyzer := NewAnalyzer(logger, 5*time.Second)
 			_ = analyzer // Use analyzer to avoid unused variable error
 
 			// Test should not panic with any network layer
@@ -222,7 +222,7 @@ func TestDiagnosticsEdgeCases(t *testing.T) {
 	// Property: Ping output parsing should handle malformed input gracefully
 	properties.Property("ping parsing handles malformed input gracefully", prop.ForAll(
 		func(malformedOutput string) bool {
-			analyzer := NewAnalyzer(logger)
+			analyzer := NewAnalyzer(logger, 5*time.Second)
 
 			// Test should not panic with malformed ping output
 			defer func() {
@@ -252,7 +252,7 @@ func TestDiagnosticsEdgeCases(t *testing.T) {
 				return true // Skip invalid cancel times
 			}
 
-			analyzer := NewAnalyzer(logger)
+			analyzer := NewAnalyzer(logger, 5*time.Second)
 			ctx, cancel := context.WithCancel(context.Background())
 
 			// Cancel context after specified time
@@ -281,7 +281,7 @@ func TestDiagnosticsEdgeCases(t *testing.T) {
 	// Property: Modem IP validation should handle various formats
 	properties.Property("modem IP validation handles various formats", prop.ForAll(
 		func(ip string) bool {
-			analyzer := NewAnalyzer(logger)
+			analyzer := NewAnalyzer(logger, 5*time.Second)
 
 			// Test should not panic with various IP formats
 			defer func() {
@@ -321,7 +321,7 @@ func TestDiagnosticsRetryBehavior(t *testing.T) {
 				return true // Skip invalid inputs
 			}
 
-			analyzer := NewAnalyzer(logger)
+			analyzer := NewAnalyzer(logger, 5*time.Second)
 			analyzer.retryConfig.MaxAttempts = maxAttempts
 
 			ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
@@ -384,7 +384,7 @@ func TestDiagnosticsAnalysisConsistency(t *testing.T) {
 				return true // Skip empty input
 			}
 
-			analyzer := NewAnalyzer(logger)
+			analyzer := NewAnalyzer(logger, 5*time.Second)
 
 			// Parse the same output multiple times
 			loss1, time1 := analyzer.parsePingOutput(pingOutput)

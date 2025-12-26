@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/sirupsen/logrus"
 	"github.com/perezjoseph/mb8600-watchdog/internal/hnap"
+	"github.com/sirupsen/logrus"
 )
 
 func main() {

@@ -13,7 +13,7 @@ import (
 
 func TestNewAnalyzer(t *testing.T) {
 	logger := logrus.New()
-	analyzer := NewAnalyzer(logger)
+	analyzer := NewAnalyzer(logger, 5*time.Second)
 
 	if analyzer == nil {
 		t.Fatal("NewAnalyzer returned nil")
@@ -38,7 +38,7 @@ func TestNewAnalyzer(t *testing.T) {
 
 func TestSetModemIP(t *testing.T) {
 	logger := logrus.New()
-	analyzer := NewAnalyzer(logger)
+	analyzer := NewAnalyzer(logger, 5*time.Second)
 
 	testIP := "192.168.1.1"
 	analyzer.SetModemIP(testIP)
@@ -50,7 +50,7 @@ func TestSetModemIP(t *testing.T) {
 
 func TestSetTimeout(t *testing.T) {
 	logger := logrus.New()
-	analyzer := NewAnalyzer(logger)
+	analyzer := NewAnalyzer(logger, 5*time.Second)
 
 	testTimeout := 30 * time.Second
 	analyzer.SetTimeout(testTimeout)
@@ -62,7 +62,7 @@ func TestSetTimeout(t *testing.T) {
 
 func TestSetMaxConcurrentTests(t *testing.T) {
 	logger := logrus.New()
-	analyzer := NewAnalyzer(logger)
+	analyzer := NewAnalyzer(logger, 5*time.Second)
 
 	testMax := 10
 	analyzer.SetMaxConcurrentTests(testMax)
@@ -93,7 +93,7 @@ func TestNetworkLayerString(t *testing.T) {
 
 func TestParseInterfaceStatus(t *testing.T) {
 	logger := logrus.New()
-	analyzer := NewAnalyzer(logger)
+	analyzer := NewAnalyzer(logger, 5*time.Second)
 
 	// Sample output from 'ip link show'
 	output := `1: lo: <LOOPBACK,UP,LOWER_UP> mtu 65536 qdisc noqueue state UP mode DEFAULT group default qlen 1000
@@ -124,7 +124,7 @@ func TestParseInterfaceStatus(t *testing.T) {
 
 func TestParseARPTable(t *testing.T) {
 	logger := logrus.New()
-	analyzer := NewAnalyzer(logger)
+	analyzer := NewAnalyzer(logger, 5*time.Second)
 
 	// Sample output from 'arp -a'
 	output := `gateway (192.168.1.1) at aa:bb:cc:dd:ee:ff [ether] on eth0
@@ -145,7 +145,7 @@ server (192.168.1.100) at 11:22:33:44:55:66 [ether] on eth0
 
 func TestParseIPAddresses(t *testing.T) {
 	logger := logrus.New()
-	analyzer := NewAnalyzer(logger)
+	analyzer := NewAnalyzer(logger, 5*time.Second)
 
 	// Sample output from 'ip addr show'
 	output := `1: lo: <LOOPBACK,UP,LOWER_UP> mtu 65536 qdisc noqueue state UP group default qlen 1000
@@ -171,7 +171,7 @@ func TestParseIPAddresses(t *testing.T) {
 
 func TestParseRoutingTable(t *testing.T) {
 	logger := logrus.New()
-	analyzer := NewAnalyzer(logger)
+	analyzer := NewAnalyzer(logger, 5*time.Second)
 
 	// Sample output from 'ip route show'
 	output := `default via 192.168.1.1 dev eth0 proto dhcp metric 100
@@ -192,7 +192,7 @@ func TestParseRoutingTable(t *testing.T) {
 
 func TestParsePingOutput(t *testing.T) {
 	logger := logrus.New()
-	analyzer := NewAnalyzer(logger)
+	analyzer := NewAnalyzer(logger, 5*time.Second)
 
 	// Sample ping output
 	output := `PING 8.8.8.8 (8.8.8.8) 56(84) bytes of data.
@@ -218,7 +218,7 @@ rtt min/avg/max/mdev = 11.8/12.4/13.1/0.5 ms`
 func TestRunDiagnostics(t *testing.T) {
 	logger := logrus.New()
 	logger.SetLevel(logrus.ErrorLevel) // Reduce log noise during tests
-	analyzer := NewAnalyzer(logger)
+	analyzer := NewAnalyzer(logger, 5*time.Second)
 
 	ctx := context.Background()
 	results, err := analyzer.RunDiagnostics(ctx)
@@ -266,7 +266,7 @@ func TestRunDiagnostics(t *testing.T) {
 func TestTestTCPConnection(t *testing.T) {
 	logger := logrus.New()
 	logger.SetLevel(logrus.ErrorLevel) // Reduce log noise during tests
-	analyzer := NewAnalyzer(logger)
+	analyzer := NewAnalyzer(logger, 5*time.Second)
 
 	ctx := context.Background()
 
@@ -298,7 +298,7 @@ func TestTestTCPConnection(t *testing.T) {
 func TestTestDNSLookup(t *testing.T) {
 	logger := logrus.New()
 	logger.SetLevel(logrus.ErrorLevel) // Reduce log noise during tests
-	analyzer := NewAnalyzer(logger)
+	analyzer := NewAnalyzer(logger, 5*time.Second)
 
 	ctx := context.Background()
 
@@ -334,7 +334,7 @@ func TestTestDNSLookup(t *testing.T) {
 func TestConcurrentExecution(t *testing.T) {
 	logger := logrus.New()
 	logger.SetLevel(logrus.ErrorLevel) // Reduce log noise during tests
-	analyzer := NewAnalyzer(logger)
+	analyzer := NewAnalyzer(logger, 5*time.Second)
 	analyzer.SetMaxConcurrentTests(2) // Limit concurrency for testing
 
 	ctx := context.Background()
@@ -362,7 +362,7 @@ func TestConcurrentExecution(t *testing.T) {
 func TestPerformDetailedAnalysis(t *testing.T) {
 	logger := logrus.New()
 	logger.SetLevel(logrus.ErrorLevel) // Reduce log noise during tests
-	analyzer := NewAnalyzer(logger)
+	analyzer := NewAnalyzer(logger, 5*time.Second)
 
 	// Create mock results with mixed success/failure
 	results := []DiagnosticResult{
@@ -427,7 +427,7 @@ func TestPerformDetailedAnalysis(t *testing.T) {
 
 func TestCalculateLayerStatistics(t *testing.T) {
 	logger := logrus.New()
-	analyzer := NewAnalyzer(logger)
+	analyzer := NewAnalyzer(logger, 5*time.Second)
 
 	results := []DiagnosticResult{
 		{
@@ -484,7 +484,7 @@ func TestCalculateLayerStatistics(t *testing.T) {
 
 func TestDetectFailurePatterns(t *testing.T) {
 	logger := logrus.New()
-	analyzer := NewAnalyzer(logger)
+	analyzer := NewAnalyzer(logger, 5*time.Second)
 
 	// Create results that should trigger failure patterns
 	results := []DiagnosticResult{
@@ -553,7 +553,7 @@ func TestDetectFailurePatterns(t *testing.T) {
 
 func TestDetermineRebootNecessity(t *testing.T) {
 	logger := logrus.New()
-	analyzer := NewAnalyzer(logger)
+	analyzer := NewAnalyzer(logger, 5*time.Second)
 
 	// Test case 1: High success rate - should not reboot
 	layerStats1 := map[string]LayerStats{
@@ -598,7 +598,7 @@ func TestDetermineRebootNecessity(t *testing.T) {
 func TestAnalyzeResults(t *testing.T) {
 	logger := logrus.New()
 	logger.SetLevel(logrus.ErrorLevel)
-	analyzer := NewAnalyzer(logger)
+	analyzer := NewAnalyzer(logger, 5*time.Second)
 
 	// Test with empty results
 	emptyResults := []DiagnosticResult{}
@@ -661,7 +661,7 @@ func TestContainsFunction(t *testing.T) {
 
 func TestGenerateRecommendations(t *testing.T) {
 	logger := logrus.New()
-	analyzer := NewAnalyzer(logger)
+	analyzer := NewAnalyzer(logger, 5*time.Second)
 
 	// Test case 1: High success rate - should get minimal recommendations
 	layerStats1 := map[string]LayerStats{
@@ -725,7 +725,7 @@ func TestGenerateRecommendations(t *testing.T) {
 func TestTestHTTPRequest(t *testing.T) {
 	logger := logrus.New()
 	logger.SetLevel(logrus.ErrorLevel)
-	analyzer := NewAnalyzer(logger)
+	analyzer := NewAnalyzer(logger, 5*time.Second)
 
 	ctx := context.Background()
 
@@ -760,7 +760,7 @@ func TestTestHTTPRequest(t *testing.T) {
 
 func TestEdgeCasesInParsing(t *testing.T) {
 	logger := logrus.New()
-	analyzer := NewAnalyzer(logger)
+	analyzer := NewAnalyzer(logger, 5*time.Second)
 
 	// Test parseInterfaceStatus with empty input
 	interfaces := analyzer.parseInterfaceStatus("")

@@ -11,5 +11,5 @@
   "EnableRebootMonitoring": true,
   "ConnectionTimeout": "30s",
   "RecoveryWait": "2m",
-  "DiagnosticsTimeout": "30s",
+  "DiagnosticsTimeout": "30s"
 }

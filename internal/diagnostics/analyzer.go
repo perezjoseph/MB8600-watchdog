@@ -114,14 +114,14 @@ type Analyzer struct {
 }
 
 // NewAnalyzer creates a new network diagnostics analyzer
-func NewAnalyzer(logger *logrus.Logger) *Analyzer {
+func NewAnalyzer(logger *logrus.Logger, timeout time.Duration) *Analyzer {
 	executor := system.NewExecutor(logger)
-	executor.SetDefaultTimeout(10 * time.Second)
+	executor.SetDefaultTimeout(timeout)
 
 	return &Analyzer{
 		logger:             logger,
 		modemIP:            config.DefaultModemHost, // Default modem IP
-		timeout:            10 * time.Second,
+		timeout:            timeout,
 		maxConcurrentTests: 5, // Default concurrent test limit
 		systemExecutor:     executor,
 		networkCommands:    system.NewNetworkCommands(executor),
@@ -164,7 +164,11 @@ func (a *Analyzer) validateAnalyzer(ctx context.Context) error {
 
 // RunDiagnostics performs comprehensive network layer testing with concurrent execution
 func (a *Analyzer) RunDiagnostics(ctx context.Context) ([]DiagnosticResult, error) {
-	if err := a.validateAnalyzer(ctx); err != nil {
+	// Create fresh context with dedicated timeout for diagnostics (ignore inherited context timeouts)
+	diagnosticCtx, cancel := context.WithTimeout(context.Background(), a.timeout)
+	defer cancel()
+
+	if err := a.validateAnalyzer(diagnosticCtx); err != nil {
 		return nil, err
 	}
 
@@ -190,7 +194,7 @@ func (a *Analyzer) RunDiagnostics(ctx context.Context) ([]DiagnosticResult, erro
 	var wg sync.WaitGroup
 	for _, layer := range layers {
 		wg.Add(1)
-		go a.runLayerDiagnostics(&wg, layer.name, layer.fn, ctx, resultsChan, errorChan)
+		go a.runLayerDiagnostics(&wg, layer.name, layer.fn, diagnosticCtx, resultsChan, errorChan)
 	}
 
 	go func() {

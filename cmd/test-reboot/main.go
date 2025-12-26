@@ -52,7 +52,7 @@ func main() {
 	err := testHTTPS(ctx, client, *host)
 	if err != nil {
 		fmt.Printf("HTTPS test failed: %v\n", err)
-		
+
 		// Test HTTP fallback
 		fmt.Println("\n=== Test 1b: HTTP Fallback ===")
 		err = testHTTP(ctx, client, *host)
@@ -127,7 +127,7 @@ func testHTMLFormLogin(ctx context.Context, client *http.Client, host, username,
 
 	for _, baseURL := range baseURLs {
 		fmt.Printf("Trying HTML login with %s\n", baseURL)
-		
+
 		// Get login page
 		loginURL := baseURL + "/Login.html"
 		req, err := http.NewRequestWithContext(ctx, "GET", loginURL, nil)
@@ -165,11 +165,11 @@ func testHTMLFormLogin(ctx context.Context, client *http.Client, host, username,
 		defer resp.Body.Close()
 
 		fmt.Printf("  Form submit status: %d\n", resp.StatusCode)
-		
+
 		// Read response body for debugging
 		body, _ := io.ReadAll(resp.Body)
 		fmt.Printf("  Response length: %d bytes\n", len(body))
-		
+
 		return nil
 	}
 
@@ -195,7 +195,7 @@ func testWebReboot(ctx context.Context, client *http.Client, host, username, pas
 			data: url.Values{"reboot": {"1"}, "action": {"reboot"}},
 		},
 		{
-			name: "MotoStatusSecurity", 
+			name: "MotoStatusSecurity",
 			url:  fmt.Sprintf("https://%s/cgi-bin/moto/goform/MotoStatusSecurity", host),
 			data: url.Values{"MotoStatusSecurityAction": {"1"}},
 		},
@@ -208,7 +208,7 @@ func testWebReboot(ctx context.Context, client *http.Client, host, username, pas
 
 	for _, method := range rebootMethods {
 		fmt.Printf("Trying %s with %s\n", method.name, method.url)
-		
+
 		req, err := http.NewRequestWithContext(ctx, "POST", method.url, strings.NewReader(method.data.Encode()))
 		if err != nil {
 			fmt.Printf("  Request creation failed: %v\n", err)
@@ -226,22 +226,22 @@ func testWebReboot(ctx context.Context, client *http.Client, host, username, pas
 		defer resp.Body.Close()
 
 		fmt.Printf("  Status: %d\n", resp.StatusCode)
-		
+
 		// Read and analyze response
 		body, _ := io.ReadAll(resp.Body)
 		bodyStr := string(body)
 		fmt.Printf("  Response length: %d bytes\n", len(body))
-		
+
 		// Check for success indicators
-		if strings.Contains(bodyStr, "reboot") || strings.Contains(bodyStr, "restart") || 
-		   strings.Contains(bodyStr, "success") || len(bodyStr) < 100 {
+		if strings.Contains(bodyStr, "reboot") || strings.Contains(bodyStr, "restart") ||
+			strings.Contains(bodyStr, "success") || len(bodyStr) < 100 {
 			fmt.Printf("  Response content: %q\n", bodyStr)
 		}
-		
+
 		// Try HTTP fallback
 		httpURL := strings.Replace(method.url, "https://", "http://", 1)
 		fmt.Printf("Trying %s with HTTP fallback: %s\n", method.name, httpURL)
-		
+
 		req, err = http.NewRequestWithContext(ctx, "POST", httpURL, strings.NewReader(method.data.Encode()))
 		if err != nil {
 			continue

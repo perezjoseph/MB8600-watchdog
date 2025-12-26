@@ -13,8 +13,8 @@ import (
 
 // Default configuration values
 const (
-	DefaultCheckInterval         = 15 * time.Second  // Reduced from 60s
-	DefaultFailureThreshold      = 3                 // Reduced from 5
+	DefaultCheckInterval         = 15 * time.Second // Reduced from 60s
+	DefaultFailureThreshold      = 3                // Reduced from 5
 	DefaultRecoveryWait          = 600 * time.Second
 	DefaultLogLevel              = "INFO"
 	DefaultLogFile               = "/app/logs/watchdog.log"

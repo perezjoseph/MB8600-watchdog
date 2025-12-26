@@ -28,7 +28,7 @@ type SurfboardHNAP struct {
 	httpClient *http.Client
 	logger     *logrus.Logger
 	baseURL    string
-	
+
 	// HNAP authentication state
 	challenge  string
 	publicKey  string
@@ -201,7 +201,7 @@ func (s *SurfboardHNAP) generateKeys() error {
 func (s *SurfboardHNAP) generateHNAPAuth(action string) string {
 	timestamp := time.Now().UnixNano() / int64(time.Millisecond)
 	authKey := fmt.Sprintf("%d\"http://purenetworks.com/HNAP1/%s\"", timestamp, action)
-	
+
 	// Generate HMAC-MD5 like Python
 	h := hmac.New(md5.New, []byte(s.privateKey))
 	h.Write([]byte(authKey))
@@ -340,7 +340,19 @@ func (s *SurfboardHNAP) Reboot(ctx context.Context) error {
 
 	err := s.tryRebootMethod(ctx, "SetStatusSecuritySettings", rebootPayload)
 	if err != nil {
-		return fmt.Errorf("reboot command failed: %w", err)
+		// Check if it's an authentication error and retry once
+		if strings.Contains(err.Error(), "authentication expired") {
+			s.logger.Info("Retrying reboot after authentication refresh")
+			if loginErr := s.Login(ctx); loginErr != nil {
+				return fmt.Errorf("re-authentication failed: %w", loginErr)
+			}
+			// Retry the reboot command
+			if retryErr := s.tryRebootMethod(ctx, "SetStatusSecuritySettings", rebootPayload); retryErr != nil {
+				return fmt.Errorf("reboot retry failed: %w", retryErr)
+			}
+		} else {
+			return fmt.Errorf("reboot command failed: %w", err)
+		}
 	}
 
 	s.logger.Info("Reboot command sent successfully")
@@ -408,6 +420,12 @@ func (s *SurfboardHNAP) tryRebootMethod(ctx context.Context, action string, requ
 		return nil
 	} else if strings.Contains(responseStr, "FAILED") || strings.Contains(responseStr, "ERROR") {
 		return fmt.Errorf("reboot command failed: %s", responseStr)
+	} else if strings.Contains(responseStr, "UN-AUTH") || strings.Contains(responseStr, "UNAUTH") {
+		// Clear authentication state and trigger re-authentication
+		s.logger.Warn("Authentication session expired, clearing credentials")
+		s.privateKey = ""
+		s.cookie = ""
+		return fmt.Errorf("authentication expired: %s", responseStr)
 	}
 
 	s.logger.Info("Reboot command sent, response unclear but assuming success")

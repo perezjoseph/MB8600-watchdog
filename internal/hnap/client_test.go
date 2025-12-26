@@ -50,7 +50,7 @@ func TestGenerateHNAPAuth(t *testing.T) {
 
 	// Set up client state for HNAP auth generation
 	client.privateKey = "36BCD55C036D1670A671D2CA97479BC6"
-	
+
 	auth := client.generateHNAPAuth("Login")
 
 	if auth == "" {
