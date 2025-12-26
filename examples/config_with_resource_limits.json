@@ -1,0 +1,42 @@
+{
+  "ModemHost": "192.168.100.1",
+  "ModemUsername": "admin",
+  "ModemPassword": "motorola",
+  "ModemNoVerify": true,
+  
+  "CheckInterval": "60s",
+  "FailureThreshold": 5,
+  "RecoveryWait": "10m",
+  
+  "LogLevel": "INFO",
+  "LogFormat": "json",
+  "LogFile": "/app/logs/watchdog.log",
+  "EnableDebug": false,
+  "LogRotation": true,
+  "LogMaxSize": 100,
+  "LogMaxAge": 30,
+  
+  "EnableDiagnostics": true,
+  "DiagnosticsTimeout": "2m",
+  "OutageReportInterval": "1h",
+  
+  "EnableRebootMonitoring": true,
+  "RebootPollInterval": "10s",
+  "RebootOfflineTimeout": "2m",
+  "RebootOnlineTimeout": "5m",
+  
+  "MaxConcurrentTests": 5,
+  "ConnectionTimeout": "10s",
+  "HTTPTimeout": "30s",
+  "RetryAttempts": 3,
+  "RetryBackoffFactor": 2.0,
+  
+  "MemoryLimitMB": 25,
+  "StartupTimeLimitMS": 75,
+  "EnableResourceLimits": true,
+  "ResourceCheckInterval": "30s",
+  
+  "EnableSystemd": true,
+  "PidFile": "/var/run/watchdog.pid",
+  "WorkingDirectory": "/app"
+}

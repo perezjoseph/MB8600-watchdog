@@ -1,0 +1,15 @@
+{
+  "ModemHost": "192.168.100.1",
+  "ModemUsername": "admin",
+  "ModemPassword": "Halorenacido1",
+  "CheckInterval": "10s",
+  "FailureThreshold": 3,
+  "LogLevel": "INFO",
+  "LogFile": "./watchdog.log",
+  "PidFile": "./watchdog.pid",
+  "WorkingDirectory": ".",
+  "EnableRebootMonitoring": true,
+  "ConnectionTimeout": "30s",
+  "RecoveryWait": "2m",
+  "DiagnosticsTimeout": "30s",
+}

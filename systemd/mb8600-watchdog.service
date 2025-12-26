@@ -1,0 +1,16 @@
+[Unit]
+Description=MB8600 Watchdog - Testing Environment
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=root
+ExecStart=/mnt/c/Users/Joseph/Desktop/MB8600-watchdog/build/watchdog --config /mnt/c/Users/Joseph/Desktop/MB8600-watchdog/config.json
+Restart=always
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target
