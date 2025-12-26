@@ -1,12 +1,12 @@
 [Unit]
-Description=MB8600 Watchdog - Testing Environment
+Description=MB8600 Watchdog - Watchdog Service
 After=network-online.target
 Wants=network-online.target
 
 [Service]
 Type=simple
 User=root
-ExecStart=/mnt/c/Users/Joseph/Desktop/MB8600-watchdog/build/watchdog --config /mnt/c/Users/Joseph/Desktop/MB8600-watchdog/config.json
+ExecStart=/opt/mb8600-watchdog/bin/watchdog --config /etc/mb8600-watchdog/config.json
 Restart=always
 RestartSec=5
 StandardOutput=journal
