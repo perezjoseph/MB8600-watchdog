@@ -36,13 +36,20 @@ sudo ./scripts/install.sh
 
 ## Key Configuration Settings
 
+Copy the example config and customize:
+
+```bash
+cp config/config.example.json config/config.json
+nano config/config.json  # Set your modem password
+```
+
 Edit the config file and update:
 
 ```json
 {
   "ModemHost": "192.168.100.1",
   "ModemUsername": "admin", 
-  "ModemPassword": "YOUR_MODEM_PASSWORD",
+  "ModemPassword": "YOUR_MODEM_PASSWORD_HERE",
   "CheckInterval": "2m",
   "FailureThreshold": 3,
   "LogLevel": "INFO"
@@ -104,6 +111,7 @@ make build        # Production build
 make build-dev    # Development build
 make build-all    # Cross-platform builds
 make test         # Run tests
+make test-coverage # Run tests with coverage
 make package      # Create distribution package
 make clean        # Clean build artifacts
 ```
@@ -120,5 +128,3 @@ make clean        # Clean build artifacts
 - **System logs**: `/var/log/mb8600-watchdog/` or `~/.local/share/mb8600-watchdog/logs/`
 - **Service logs**: `journalctl -u mb8600-watchdog`
 - **Outage reports**: Auto-generated in logs directory
-
-For complete documentation, see `DEPLOYMENT.md`.
