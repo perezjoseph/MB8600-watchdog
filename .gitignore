@@ -97,3 +97,5 @@ coverage.html
 
 # Go module cache (if not using go mod)
 vendor/
+# Personal config files
+config/config.json

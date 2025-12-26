@@ -1,0 +1,40 @@
+{
+  "ModemHost": "192.168.100.1",
+  "ModemUsername": "admin",
+  "ModemPassword": "YOUR_MODEM_PASSWORD_HERE",
+  "ModemNoVerify": true,
+  
+  "CheckInterval": "2m",
+  "FailureThreshold": 3,
+  "RecoveryWait": "5m",
+  
+  "LogLevel": "INFO",
+  "LogFormat": "json",
+  "LogFile": "/var/log/mb8600-watchdog/watchdog.log",
+  "EnableDebug": false,
+  "LogRotation": true,
+  "LogMaxSize": 100,
+  "LogMaxAge": 30,
+  
+  "EnableDiagnostics": true,
+  "DiagnosticsTimeout": "30s",
+  "OutageReportInterval": "1h",
+  
+  "PingHosts": ["8.8.8.8", "1.1.1.1", "9.9.9.9"],
+  "HTTPHosts": ["https://www.google.com", "https://www.cloudflare.com"],
+  
+  "MaxConcurrentTests": 3,
+  "ConnectionTimeout": "10s",
+  "HTTPTimeout": "15s",
+  "RetryAttempts": 3,
+  "RetryBackoffFactor": 2.0,
+  
+  "MemoryLimitMB": 50,
+  "StartupTimeLimitMS": 100,
+  "EnableResourceLimits": true,
+  "ResourceCheckInterval": "5m",
+  
+  "EnableSystemd": true,
+  "PidFile": "/var/run/mb8600-watchdog.pid",
+  "WorkingDirectory": "/opt/mb8600-watchdog"
+}
