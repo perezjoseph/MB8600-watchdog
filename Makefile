@@ -63,7 +63,10 @@ install: build check-root
 	
 	# Create directories
 	@echo "Creating directories..."
-	@mkdir -p $(INSTALL_DIR)/{bin,config,logs,state}
+	@mkdir -p $(INSTALL_DIR)/bin
+	@mkdir -p $(INSTALL_DIR)/config
+	@mkdir -p $(INSTALL_DIR)/logs
+	@mkdir -p $(INSTALL_DIR)/state
 	@mkdir -p $(LOCALSTATEDIR)/log/mb8600-watchdog
 	@mkdir -p $(SYSCONFDIR)/mb8600-watchdog
 	

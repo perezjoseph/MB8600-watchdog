@@ -26,6 +26,7 @@ func TestApplicationLifecycle(t *testing.T) {
 	cfg.LogLevel = "ERROR"                 // Reduce noise
 	cfg.LogFile = "/tmp/test-watchdog.log" // Use temp directory
 	cfg.WorkingDirectory = "/tmp"
+	cfg.PidFile = "/tmp/test-watchdog.pid" // Use temp PID file
 
 	// Test 1: Application creation
 	app, err := NewApp(cfg)
@@ -75,6 +76,7 @@ func TestApplicationSignalHandling(t *testing.T) {
 	cfg.LogLevel = "ERROR"
 	cfg.LogFile = "/tmp/test-watchdog.log"
 	cfg.WorkingDirectory = "/tmp"
+	cfg.PidFile = "/tmp/test-watchdog-signal.pid" // Use temp PID file
 
 	app, err := NewApp(cfg)
 	if err != nil {
